@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleName</key><string>Billing</string>
+  <key>CFBundleDisplayName</key><string>Billing</string>
+  <key>CFBundleIdentifier</key><string>local.billing.launcher</string>
+  <key>CFBundleVersion</key><string>3.0</string>
+  <key>CFBundleShortVersionString</key><string>3.0</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleExecutable</key><string>Billing</string>
+  <key>LSMinimumSystemVersion</key><string>10.13</string>
+  <key>LSUIElement</key><true/>
+  <key>NSDesktopFolderUsageDescription</key><string>Billing keeps its books in the Billing folder, and reads SHREE's folder, on the Desktop.</string>
+  <key>NSDownloadsFolderUsageDescription</key><string>Bills, challans and statements you download from Billing are saved in Downloads.</string>
+  <key>NSNetworkVolumesUsageDescription</key><string>Billing reads SHREE's data from the accounts computer.</string>
+</dict></plist>

@@ -1,0 +1,108 @@
+#!/bin/bash
+# Billing on the Mac: what run.bat and stop.bat are on Windows.
+#
+#   Billing.app        starts Billing and opens its window
+#   Stop Billing.app   stops it
+#
+# Both apps carry this same script and go by their own name. billing.py does
+# the work, as on every other computer; this finds the Billing folder and a
+# Python to run it with, and puts what went wrong in a message box -- an app
+# has no Terminal for billing.py to print into.
+
+BUNDLE="$(cd "$(dirname "$0")/../.." && pwd)"
+PORT="${BILLING_PORT:-8800}"
+
+tell() {
+    # tell MESSAGE [stop] -- a message box; the stop sign for a failure.
+    /usr/bin/osascript - "$1" "${2:-note}" >/dev/null 2>&1 <<'APPLESCRIPT'
+on run argv
+    if item 2 of argv is "stop" then
+        display dialog (item 1 of argv) with title "Billing" buttons {"OK"} default button 1 with icon stop
+    else
+        display dialog (item 1 of argv) with title "Billing" buttons {"OK"} default button 1 with icon note
+    end if
+end run
+APPLESCRIPT
+}
+
+# The Billing folder: the one this app sits in, or a Billing folder beside it
+# (a copy of the app kept on the Desktop next to the folder).
+FOLDER=""
+for d in "$(dirname "$BUNDLE")" "$(dirname "$BUNDLE")/Billing" "$HOME/Desktop/Billing"; do
+    if [ -f "$d/billing.py" ] && [ -f "$d/app/server.py" ]; then
+        FOLDER="$d"
+        break
+    fi
+done
+if [ -z "$FOLDER" ]; then
+    tell "Cannot find the Billing folder.
+
+Keep this app inside the Billing folder, next to billing.py." stop
+    exit 1
+fi
+
+# A Python 3 -- the one that has reportlab first, since that draws the
+# printed bills and challans. /usr/bin/python3 is left out on purpose: on a
+# Mac without the developer tools it only offers to install them.
+PYTHON=""
+ANY=""
+for p in /Library/Developer/CommandLineTools/usr/bin/python3 \
+         /Applications/Xcode.app/Contents/Developer/usr/bin/python3 \
+         /opt/homebrew/bin/python3 \
+         /usr/local/bin/python3 \
+         /Library/Frameworks/Python.framework/Versions/Current/bin/python3; do
+    [ -x "$p" ] || continue
+    [ -n "$ANY" ] || ANY="$p"
+    if "$p" -c 'import reportlab' >/dev/null 2>&1; then
+        PYTHON="$p"
+        break
+    fi
+done
+PYTHON="${PYTHON:-$ANY}"
+if [ -z "$PYTHON" ]; then
+    tell "Billing needs Python 3, and this Mac has none.
+
+Install it from python.org (Downloads > macOS), then open Billing again." stop
+    exit 1
+fi
+
+# Books that are only inside a running Billing. Deleting the Billing folder,
+# or putting a new one in its place, while Billing runs leaves the books file
+# open in that server and nowhere on the disk. Stopping the server -- and
+# billing.py stops one that no longer answers -- would lose them for good.
+pid="$(/usr/sbin/lsof -nP -iTCP:"$PORT" -sTCP:LISTEN -t 2>/dev/null | head -n 1)"
+if [ -n "$pid" ]; then
+    books="$(/usr/sbin/lsof -nP -p "$pid" -Fn 2>/dev/null | sed -n 's/^n//p' | grep '/billing\.db$' | head -n 1)"
+    if [ -n "$books" ] && [ ! -e "$books" ]; then
+        tell "Billing is still running from a Billing folder that has been deleted. Its books are no longer on the disk -- only inside that running Billing.
+
+Nothing was started or stopped, so they are still there. Do not restart or shut down this Mac until the books have been copied out of it.
+
+(process $pid: $books)" stop
+        exit 1
+    fi
+fi
+
+case "$BUNDLE" in
+    *"Stop Billing.app") STOP="--stop" ;;
+    *) STOP="" ;;
+esac
+
+# billing.py's own options pass through (open Billing.app --args --tab);
+# older macOS adds a -psn_ argument of its own.
+ARGS=()
+for a in "$@"; do
+    case "$a" in -psn_*) ;; *) ARGS+=("$a") ;; esac
+done
+
+cd "$FOLDER" || exit 1
+OUT="$(mktemp -t billing)" || exit 1
+"$PYTHON" billing.py $STOP --port "$PORT" "${ARGS[@]}" >"$OUT" 2>&1
+CODE=$?
+if [ "$CODE" -ne 0 ]; then
+    tell "$(tail -n 20 "$OUT")" stop
+elif [ -n "$STOP" ]; then
+    tell "$(tail -n 1 "$OUT")"
+fi
+rm -f "$OUT"
+exit "$CODE"

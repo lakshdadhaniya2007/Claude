@@ -1,0 +1,1570 @@
+:root{
+  --bg:#f4f6f9; --panel:#ffffff; --ink:#16202c; --muted:#66768a;
+  --line:#dfe5ec; --line-soft:#eef2f6;
+  --brand:#12508a; --brand-dk:#0d3c69; --brand-soft:#e8f0f9;
+  --ok:#15803d; --ok-soft:#e7f6ec; --warn:#b45309; --warn-soft:#fdf3e3;
+  --bad:#b42318; --bad-soft:#fdeceb;
+  --focus:#1f6fd1; --focus-halo:rgba(31,111,209,.30);
+  --radius:8px; --shadow:0 1px 2px rgba(16,32,48,.06),0 4px 14px rgba(16,32,48,.06);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:16.5px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+/* Larger type on Windows (11 Oct 2026: "on windows the font size of all the
+   text in the entire software looks a bit small"). Segoe UI and Consolas,
+   the faces Windows takes from the lists here, have short small letters --
+   half their size, where the Mac's faces have more -- so the same 16.5px
+   reads a size smaller there. font-size-adjust sizes every face by the
+   height of its small letters instead, and leaves the Mac as it was.
+   Handed down from body, so the sizes written into the screens' own HTML
+   grow with it. The screen only: the stationery is sized in mm for A4.
+   `win` is put on <html> at the top of app.js.
+   Asked for three times that evening ("a bit bigger", then "still ... a
+   bit small. Make it bigger especially the numbers"), so the type is as
+   large as the window has room for -- words (--words, Segoe UI) and
+   figures (--figures, Consolas) apart:
+     under 1400 wide   words x1.2,  figures x1.22
+     1400 and over     words x1.26, figures x1.27
+     1600 and over     words x1.32, figures x1.37
+   At 1366 figures any larger than x1.22 put Accounts' Balance off the
+   right edge. Lines are spaced to suit (--lines), so wrapped words do not
+   touch. A width fixed to just hold its words -- a drop-down's, the
+   title's -- is multiplied by --typescale, the words' factor. Every rule
+   that sets var(--mono) is listed below, and the screens' own HTML is
+   caught by its style attribute. */
+:root{--typescale:1}
+html.win{--typescale:1.2;--words:.6;--figures:.6;--lines:1.5}
+@media (min-width:1400px){
+  html.win{--typescale:1.26;--words:.63;--figures:.62;--lines:1.58}
+}
+@media (min-width:1600px){
+  html.win{--typescale:1.32;--words:.66;--figures:.67;--lines:1.62}
+}
+@media screen{
+  html.win body{font-size-adjust:var(--words);line-height:var(--lines)}
+  html.win .num,html.win .mono,html.win .kbd,html.win #kbbar .k,
+  html.win .totbox .vl,html.win .totrow .out,html.win .bars .b b,
+  html.win .ageband .ab b,html.win .picked,html.win .stk,
+  html.win .lineitems input.hsn,html.win .banktbl td .code,
+  html.win .mchip small,html.win .sdfig .vl,html.win .catbar button .ck,
+  html.win .pick-list.steelpick-list div .kg,
+  html.win [style*="var(--mono)"]{font-size-adjust:var(--figures)}
+  html.win .sheet,html.win .sheet *{font-size-adjust:none}
+}
+a{color:var(--brand);text-decoration:none}
+/* A name or a number that opens what it names: quiet until pointed at. */
+a.golink{color:inherit;border-bottom:1px dotted currentColor}
+a.golink:hover,a.golink:focus-visible{color:var(--brand);border-bottom-style:solid}
+tr[data-href]{cursor:pointer}
+h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
+
+/* ---------------------------------------------------------------- layout */
+#app{display:flex;min-height:100vh}
+#sidebar{
+  width:246px;flex:0 0 246px;background:var(--brand-dk);color:#cfe0f0;
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;
+}
+/* The menu ends above the keys along the foot of the window: its last
+   entries, and the firm's year under them, used to scroll in behind the
+   bar and be walked to out of sight. */
+#sidebar{height:calc(100vh - var(--kbbar-h,0px))}
+.brand{padding:16px 16px 14px;border-bottom:1px solid rgba(255,255,255,.12)}
+.brand b{display:block;color:#fff;font-size:18.5px;letter-spacing:-.01em}
+.brand span{font-size:13.5px;color:#8fb4d6;text-transform:uppercase;letter-spacing:.08em}
+#co-switch{margin-top:9px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);
+  color:#fff;font-size:14.5px;padding:5px 7px;border-radius:5px}
+#co-switch option{color:#16202c}
+nav{flex:1;overflow-y:auto;padding:10px 0 20px}
+/* The menu in groups (5 Oct 2026): each heading shows its entries or folds
+   them away, one group open at a time. A folded group holding the screen
+   that is open keeps the blue mark of its entry, so where you are still
+   shows. */
+nav .grp{display:flex;align-items:center;gap:9px;width:100%;margin:0;
+  padding:12px 16px 9px 15px;border:0;border-left:3px solid transparent;
+  border-radius:0;background:none;font-size:13.5px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:#a3c2df;text-align:left}
+nav .grp:hover{background:rgba(255,255,255,.07);color:#fff}
+nav .grp .caret{flex:none;width:7px;height:7px;margin:0 3px 0 2px;
+  border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+  transform:rotate(-45deg);transition:transform .14s ease}
+nav .navgrp.open .grp{color:#e3eef8}
+nav .navgrp.open .grp .caret{transform:rotate(45deg)}
+nav .navgrp.here:not(.open) .grp{color:#fff;border-left-color:#63b3f5;
+  background:rgba(255,255,255,.08)}
+nav .grpbody{display:none}
+nav .navgrp.open .grpbody{display:block;animation:fadeIn .14s ease}
+nav .navgrp.open{padding-bottom:6px}
+nav .navgrp .grp:focus,nav .navgrp.here:not(.open) .grp:focus{outline:none;
+  background:#e8f0f9;color:var(--brand-dk);border-left-color:#63b3f5}
+nav a{
+  display:flex;align-items:center;gap:10px;padding:9px 18px;color:#cfe0f0;
+  font-size:16.5px;border-left:3px solid transparent;
+}
+/* Windows' larger type: "Receipts / Payments" was a pixel too long for the
+   menu and took two lines. Room taken off the right, where nothing sits. */
+html.win nav a{gap:8px;padding-right:8px}
+/* From 1400 wide the words are larger again and the menu is given the
+   room: "Personal Accounts" and "Receipts / Payments" took two lines. */
+@media (min-width:1400px){html.win #sidebar{width:262px;flex-basis:262px}}
+@media (min-width:1600px){html.win #sidebar{width:274px;flex-basis:274px}}
+nav a:hover{background:rgba(255,255,255,.07);color:#fff}
+nav a.on{background:rgba(255,255,255,.13);color:#fff;border-left-color:#63b3f5;font-weight:600}
+nav a .ic{width:16px;text-align:center;opacity:.85;font-size:15.5px}
+nav a .nl{flex:1;min-width:0}
+.sidefoot{padding:10px 16px;font-size:13.5px;color:#7ba4cc;border-top:1px solid rgba(255,255,255,.12)}
+
+main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{
+  background:var(--panel);border-bottom:1px solid var(--line);padding:14px 26px;
+  display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:20;
+}
+/* The title keeps room to be read. Squeezed by a screen's buttons in a narrow
+   window it went down a letter at a time -- "Bank / & / ca" (21 Sep 2026);
+   now the buttons go onto a second line instead. At 1366 wide every screen's
+   title already has 274px or more, so nothing moves there. */
+.topbar{flex-wrap:wrap;row-gap:10px}
+.topbar h1{font-size:20.5px;flex:1;min-width:0}
+.topbar h1{min-width:min(220px,100%)}
+/* The way back sits at the top of every screen. Its space is always held --
+   hidden rather than removed -- so the title does not jump about as it comes
+   and goes, and on the screen the app opened on there is nothing behind to
+   go back to, so it is simply not there to be pressed. */
+#back-btn{
+  font-size:19.5px;line-height:1;padding:5px 11px;flex:none;
+  transition:visibility 0s;
+}
+#back-btn[hidden]{visibility:hidden;display:inline-block}
+.topbar .sub{font-size:14.5px;color:var(--muted);font-weight:400;margin-top:1px}
+.wrap{padding:26px 28px 68px;max-width:1660px;width:100%}
+
+/* --------------------------------------------------------------- widgets */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);margin-bottom:20px}
+.card>h2{padding:12px 16px;border-bottom:1px solid var(--line-soft);font-size:17.5px;
+  display:flex;align-items:center;gap:10px}
+.card>h2 .rt{margin-left:auto;display:flex;gap:8px;align-items:center}
+.card .bd{padding:18px}
+.card .bd.flush{padding:0}
+
+button,.btn{
+  font:inherit;font-size:15.5px;font-weight:550;padding:10px 17px;border-radius:7px;
+  border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+}
+button:hover,.btn:hover{background:var(--line-soft)}
+button.primary,.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+button.primary:hover{background:var(--brand-dk)}
+button.danger{color:var(--bad);border-color:#f0c9c5}
+button.danger:hover{background:var(--bad-soft)}
+button.sm{padding:7px 12px;font-size:14.5px}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.link{border:0;background:none;padding:2px 4px;color:var(--brand);font-weight:550}
+button.link:hover{background:var(--brand-soft)}
+
+label{display:block;font-size:14px;font-weight:600;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
+input,select,textarea{
+  font:inherit;font-size:16.5px;width:100%;padding:11px 14px;border:1px solid var(--line);
+  border-radius:7px;background:#fff;color:var(--ink);
+}
+/* The box being typed in.
+   A sale voucher is thirty boxes and a grid of them, and a thin ring was not
+   enough to find the live one at a glance -- so the box lights up as well:
+   a tinted ground, a solid border and a halo that reads from across the
+   screen. Working it by keyboard means never having clicked the box, so
+   this is the only thing that says where the typing will land. */
+/* 24 Sep 2026: "make this highlighted border more visible" -- the 1px
+   border and pale halo were easy to lose on a wide screen. Now a solid 2px
+   edge in a brighter blue (the second pixel is a shadow, so nothing on the
+   form shifts when a box lights up) and a wider, stronger halo. */
+input:focus,select:focus,textarea:focus{
+  outline:none;border-color:var(--focus);background:#f5f9ff;
+  box-shadow:0 0 0 1px var(--focus),0 0 0 5px var(--focus-halo);
+}
+input:focus::placeholder,textarea:focus::placeholder{color:#9fb2c6}
+/* A read-only box keeps its grey ground, so it does not pretend to be live. */
+input[readonly]:focus{background:var(--line-soft);border-color:var(--focus);
+  box-shadow:0 0 0 1px var(--focus),0 0 0 5px rgba(31,111,209,.18)}
+
+/* And the row it sits in, on the item grid: the line being worked on reads
+   as one thing rather than one lit box among twelve. */
+.lineitems tbody tr:focus-within{background:var(--brand-soft)}
+.lineitems tbody tr:focus-within>td:first-child{box-shadow:inset 3px 0 0 var(--brand)}
+/* The same for a labelled row of the form, so By Dept or Driver Name shows
+   which line of the band is live. */
+.vgrid:focus-within>label{transition:color .12s}
+input[readonly]{background:var(--line-soft);color:var(--muted)}
+textarea{resize:vertical;min-height:84px}
+.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:15.5px}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+/* A field that wants twice the room. Ordered so that on the narrow layout,
+   where a four-column grid halves to two, a wide field still starts its own
+   row and never leaves a hole beside a narrow one. */
+.sp2{grid-column:span 2}
+.sp-all{grid-column:1/-1}
+.row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+/* Apply and CSV belong together. Left loose in a wrapping row, a filter bar
+   one box too wide dropped CSV onto a line of its own. */
+.row .acts{display:flex;gap:10px;align-items:flex-end;flex-wrap:nowrap;margin-left:auto}
+.row>*{min-width:0}
+.spacer{flex:1}
+
+table{width:100%;border-collapse:collapse;font-size:15.5px}
+th{text-align:left;font-size:13.5px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--muted);font-weight:700;padding:12px var(--cellx,14px);border-bottom:1px solid var(--line);
+  background:#fbfcfe;white-space:nowrap;position:sticky;top:0}
+td{padding:12px var(--cellx,14px);border-bottom:1px solid var(--line-soft);vertical-align:middle}
+/* With Windows' larger type a figure column's heading of two words may
+   take two lines when the list is short of room -- at 1366 wide Staff &
+   salary's "Salary booked" and "Loose money" pushed Actions off the right.
+   Only over figures, which never break: let "Bill no" wrap and the bill
+   numbers under it broke too ("GT / 285"). Lists that set nowrap on their
+   own headings keep it (:where adds nothing to the weight). */
+:where(html.win) th.r{white-space:normal}
+tbody tr:hover{background:#fafcfe}
+tfoot td{font-weight:700;border-top:2px solid var(--line);background:#fbfcfe}
+th.r,td.r{text-align:right}
+th.c,td.c{text-align:center}
+.tbl-scroll{overflow-x:auto}
+/* A list that fits its card is not a scroll box -- Chrome repaints every
+   line of a scroll box on each change, off screen or not -- and one a little
+   too wide for the window closes up its columns to fit (`fitLists` in
+   app.js, 27 Sep 2026). Its headings stay where they are drawn, as they did
+   inside the box. */
+.tbl-scroll.fits{overflow:visible;display:flow-root}
+.tbl-scroll.fits th{position:static}
+.tbl-scroll.tight{--cellx:8px}
+.tbl-scroll.tighter{--cellx:5px}
+/* A list still too wide keeps the box, and there each frame of the line's
+   fade repaints the whole list: the cursor moves without one. */
+.tbl-scroll.wide > table > tbody > tr{transition:none}
+tr.clickable{cursor:pointer}
+
+.tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:13.5px;font-weight:650;
+  background:var(--line-soft);color:var(--muted)}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}
+.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.tag.bad{background:var(--bad-soft);color:var(--bad)}
+.tag.info{background:var(--brand-soft);color:var(--brand)}
+
+/* Wide enough for a figure in crores set at 20px: a wrapped number is
+   unreadable, so the track is sized to the longest one instead (times
+   --typescale, Windows' larger type). */
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(212px * var(--typescale)),1fr));
+  gap:12px;margin-bottom:18px}
+/* A column layout so the footnote sits on the card's floor: in a row of
+   cards the captions then line up whatever length the labels above ran to. */
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 15px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.kpi .lb{font-size:13.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:650}
+.kpi .vl{font-size:24.5px;font-weight:680;margin-top:5px;font-variant-numeric:tabular-nums;
+  letter-spacing:-.02em}
+.kpi .ft{font-size:14px;color:var(--muted);margin-top:auto;padding-top:3px}
+.kpi.good .vl{color:var(--ok)} .kpi.bad .vl{color:var(--bad)} .kpi.brand .vl{color:var(--brand)}
+
+.empty{padding:34px 20px;text-align:center;color:var(--muted);font-size:16.5px}
+.empty b{display:block;color:var(--ink);font-size:18px;margin-bottom:5px}
+
+/* ------------------------------------- the two-sided accounts statements
+   Profit & loss and the balance sheet are read as two facing columns with
+   every figure on the column's own right edge, the way the printed statement
+   sets them. Without these rules both pages came out as running text with
+   the amounts jammed against the names. */
+.twocol{display:grid;grid-template-columns:1fr 1fr}
+.twocol>div{padding:14px 18px;min-width:0}
+.twocol>div+div{border-left:1px solid var(--line)}
+.twocol h3{font-size:14px;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--muted);font-weight:700;padding-bottom:8px;margin-bottom:4px;
+  border-bottom:1px solid var(--line)}
+.bsline{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+  padding:6px 0;border-bottom:1px solid var(--line-soft);font-size:16.5px}
+.bsline>span:first-child{min-width:0}
+.bsline .num{flex:none;white-space:nowrap}
+.bsline .tag{margin-left:6px}
+.bsline.tot{margin-top:6px;padding-top:9px;border-top:2px solid var(--line);
+  border-bottom:0;font-weight:700;font-size:18px}
+.bsline.tot .num{font-size:18px;font-weight:700}
+@media (max-width:760px){
+  .twocol{grid-template-columns:1fr}
+  .twocol>div+div{border-left:0;border-top:1px solid var(--line)}
+}
+
+/* A date is one word. Left to wrap it split across two lines and gave every
+   row in a list a second line it did not need. */
+.nw{white-space:nowrap}
+
+.bars{display:flex;align-items:flex-end;gap:7px;height:132px;padding:6px 2px 0}
+.bars .b{flex:1 1 0;max-width:64px;display:flex;flex-direction:column;justify-content:flex-end;
+  align-items:center;gap:5px;height:100%;position:relative}
+.bars .b i{width:100%;background:linear-gradient(180deg,#3b82c4,#12508a);border-radius:4px 4px 0 0;min-height:2px}
+.bars .b span{font-size:12.5px;color:var(--muted);white-space:nowrap}
+/* The month's figure. It reads on hover as it always did, and now also when
+   the keyboard lands on the column -- otherwise the chart said nothing at all
+   to anyone working without a mouse. */
+.bars .b b{position:absolute;top:-1px;left:50%;transform:translateX(-50%);
+  font-family:var(--mono);font-size:13px;font-weight:600;white-space:nowrap;
+  background:#16202c;color:#fff;padding:2px 6px;border-radius:4px;
+  opacity:0;pointer-events:none;transition:opacity .12s;z-index:2}
+.bars .b:hover b,.bars .b:focus b{opacity:1}
+/* The figure over the first and last months hangs inward, not past the
+   card's edge -- the last one ran under the Cash & bank card (29 Sep 2026). */
+.bars .b:first-child b{left:0;transform:none}
+.bars .b:last-child b{left:auto;right:0;transform:none}
+.bars .b:focus{outline:2px solid var(--brand);outline-offset:2px;border-radius:4px}
+
+#toast{position:fixed;right:18px;bottom:calc(18px + var(--kbbar-h,0px));z-index:200;display:flex;
+  flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:#16202c;color:#fff;padding:10px 15px;border-radius:7px;font-size:15.5px;
+  box-shadow:0 8px 24px rgba(0,0,0,.22);max-width:380px}
+.toast.bad{background:var(--bad)} .toast.ok{background:var(--ok)}
+
+.modal-bg{position:fixed;inset:0;background:rgba(16,32,48,.44);z-index:150;
+  display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;
+  padding-bottom:calc(40px + var(--kbbar-h,0px))}
+.modal{background:var(--panel);border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.28);
+  width:100%;max-width:720px}
+.modal.wide{max-width:940px}
+/* Windows' larger type: the Select window's Balance column was cut off. */
+html.win .modal{max-width:calc(720px * var(--typescale))}
+html.win .modal.wide{max-width:calc(940px * var(--typescale))}
+.modal h2{padding:14px 18px;border-bottom:1px solid var(--line);font-size:18.5px;display:flex}
+.modal h2 button{margin-left:auto}
+.modal .bd{padding:18px}
+.modal .ft{padding:13px 18px;border-top:1px solid var(--line);display:flex;gap:9px;
+  justify-content:flex-end;background:#fbfcfe;border-radius:0 0 10px 10px}
+
+.pick{position:relative}
+.pick-list{position:fixed;z-index:400;background:#fff;
+  border:1px solid var(--line);border-radius:7px;box-shadow:0 10px 28px rgba(16,32,48,.16);
+  max-height:250px;overflow-y:auto}
+.pick-list div{padding:7px 10px;cursor:pointer;font-size:15.5px;border-bottom:1px solid var(--line-soft)}
+.pick-list div:last-child{border-bottom:0}
+.pick-list div:hover,.pick-list div.hi{background:var(--brand-soft)}
+.pick-list div small{color:var(--muted);display:block;font-size:14px}
+
+.totbox{display:grid;grid-template-columns:1fr auto;gap:5px 18px;font-size:16.5px}
+.totbox .lb{color:var(--muted)}
+.totbox .vl{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono)}
+.totbox .grand{font-size:23px;font-weight:700;border-top:2px solid var(--line);padding-top:8px;margin-top:5px}
+.totbox .grand.lb{font-family:inherit;color:var(--ink)}
+
+.lineitems td{padding:4px 5px}
+.lineitems input,.lineitems select{padding:5px 7px;font-size:15.5px;border-color:var(--line-soft)}
+.lineitems th{padding:7px 6px;text-transform:none;font-size:14px;
+  letter-spacing:0;color:var(--ink);font-weight:650}
+.hint{font-size:14px;color:var(--muted);margin-top:5px}
+.kbd{font-family:var(--mono);font-size:13.5px;background:var(--line-soft);border:1px solid var(--line);
+  border-radius:4px;padding:1px 5px;color:var(--muted)}
+button.primary .kbd,.btn.primary .kbd{background:rgba(255,255,255,.18);
+  border-color:rgba(255,255,255,.3);color:#e8f0f9}
+
+
+/* ------------------------------------------------- how late a debt is ---
+   One bar, split by how long each part has been past due. Widths are the
+   amounts themselves, so the shape of the bar is the shape of the debt. */
+.ageband{display:flex;gap:3px;align-items:stretch;min-height:64px}
+/* The bars are weighted by amount, so a small band beside a large one was
+   squeezed until its own figure was cut off -- which is the one thing a bar
+   has to say. Wide enough for the figure first, and the weighting shares out
+   what is left; they wrap rather than shrink past it on a narrow window. */
+.ageband{flex-wrap:wrap}
+.ageband .ab{display:flex;flex-direction:column;justify-content:center;
+  padding:9px 12px;border-radius:7px;min-width:148px;color:#fff;
+  overflow:hidden}
+.ageband .ab b{font-family:var(--mono);font-size:16px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+/* Windows' larger figures: 39,48,325.76 lost its last figures at 1366. */
+html.win .ageband .ab{min-width:calc(148px * var(--typescale))}
+.ageband .ab span{font-size:12.5px;opacity:.85;white-space:nowrap}
+.ageband .ab1-30{background:#c58a12}
+.ageband .ab31-60{background:#b8690f}
+.ageband .ab61-90{background:#a8400f}
+.ageband .ab91p{background:var(--bad)}
+tr.lateln>td{background:#fffaf7}
+/* The open items shown under a customer on "Who owes us": a table inside a
+   row, so it must not read as the same rank as the list it sits in. */
+table.sub{font-size:12.5px;background:var(--line-soft);border-radius:7px}
+table.sub th{font-size:10.5px;letter-spacing:.03em}
+table.sub tfoot td{background:transparent}
+
+/* ------------------------------------------- outstanding, two columns ---
+   The old software puts Liabilities and Assets side by side and reads them
+   as one sheet. Below a wide screen they stack, because two columns of
+   eight-figure rupees in half the width is worse than scrolling. */
+.osheets{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+/* Each half may narrow to its share of the width, and the long column
+   heading wraps to do it: at 1280 wide the two sheets were 28px too wide
+   between them and the page scrolled sideways, Assets cut off (29 Sep 2026). */
+.osheets{grid-template-columns:repeat(2,minmax(0,1fr))}
+.osheet thead th{white-space:normal}
+@media (max-width:1200px){.osheets{grid-template-columns:1fr}}
+.osheet{margin-bottom:0}
+.osheet tr.ogrp>td{background:#fbfcfe;font-weight:700;color:var(--brand-dk);
+  border-top:1px solid var(--line)}
+.osheet tr.ogrp .caret{color:var(--muted);font-size:12px}
+.osheet tr.osum>td{color:var(--brand);background:#fdfdff;
+  border-bottom:1px solid var(--line)}
+.osheet tr.orow>td{padding-top:8px;padding-bottom:8px}
+.osheet tfoot td{font-size:16px}
+
+/* ================================================================ motion
+   Movement here is meant to say something, not to decorate: a screen that
+   arrives from somewhere, a panel that opens rather than appears, a button
+   that answers the press. Everything is short -- 90 to 220ms -- because a
+   till screen is worked at speed and an animation you wait for is a bug.
+
+   Rows are never animated one by one. A list here runs to three thousand of
+   them, and staggering their entrance would cost more than drawing them.
+
+   The whole of it is switched off for anyone who asks, at the foot. */
+
+@keyframes riseIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes popIn{from{opacity:0;transform:translateY(10px) scale(.985)}
+                 to{opacity:1;transform:none}}
+@keyframes slideInRight{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+
+/* A screen arrives. The whole view, once -- not each card, which on a long
+   report reads as the page being assembled in front of you. */
+#view.turning{animation:riseIn .18s ease-out}
+
+/* Cards and figures settle in behind it, a hair later and only on the first
+   paint of a screen. */
+.kpis{animation:riseIn .22s ease-out}
+
+/* Panels that open: the month behind a row, the entries behind a month. */
+tr.det > td > table{animation:fadeIn .14s ease-out}
+.caret{display:inline-block;transition:transform .16s ease}
+.caret.open{transform:rotate(90deg)}
+
+/* Things that answer the pointer or the key. */
+button,.btn{transition:background .12s ease,border-color .12s ease,
+  color .12s ease,transform .08s ease,box-shadow .12s ease}
+button:active,.btn:active{transform:translateY(1px)}
+button.primary:hover,.btn.primary:hover{box-shadow:0 2px 10px rgba(18,80,138,.28)}
+tbody tr{transition:background .1s ease}
+nav a{transition:background .12s ease,color .12s ease,border-left-color .12s ease}
+input,select,textarea{transition:border-color .12s ease,box-shadow .12s ease,
+  background .12s ease}
+.card{transition:box-shadow .16s ease}
+
+/* What is said to the user, and what is asked of them. */
+.toast{animation:slideInRight .18s ease-out}
+.modal-bg{animation:fadeIn .13s ease-out}
+.modal{animation:popIn .18s cubic-bezier(.2,.8,.3,1)}
+.pick-list{animation:popIn .12s ease-out}
+
+/* The bar along the foot, which comes and goes with the list cursor. */
+#kbbar{transition:transform .18s ease,opacity .18s ease}
+
+/* Anyone who has asked their machine for less movement gets none of it --
+   and neither does the printer. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;
+    animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
+@media print{*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* ----------------------------------------------------------- print sheet */
+#print-area{display:none}
+@media print{
+  #sidebar,.topbar,#toast,.modal-bg,.noprint{display:none!important}
+  body{background:#fff}
+  @page{size:A4 portrait;margin:8mm}
+  /* Printing a bill or a challan swaps the whole page for the stationery
+     sheet. Printing a report prints the report -- the sheet is empty then,
+     and hiding .wrap unconditionally sent a blank page to the printer. */
+  body.print-doc .wrap{display:none}
+  body.print-doc #print-area{display:block!important;padding:0}
+  #print-area[data-format="challan"]{--x:1}
+  /* A report on paper: no panels, no shadows, and a row is not split over
+     two pages. */
+  .wrap{padding:0;max-width:none}
+  .card{border:0;box-shadow:none;margin-bottom:12px;break-inside:auto}
+  .card>h2{border-bottom:1px solid #999;padding:0 0 4px}
+  .card .bd{padding:0}
+  .kpi{border:1px solid #999;box-shadow:none}
+  tr,.bsline{break-inside:avoid}
+  thead{display:table-header-group}
+  .btn,button{display:none!important}
+}
+
+/* ---- shared ---- */
+.sheet{color:#000;font-family:Arial,Helvetica,sans-serif;font-size:11px}
+.sheet table{border-collapse:collapse;width:100%}
+/* The app's table headers are uppercased; printed bills are not. */
+.sheet th{text-transform:none;letter-spacing:0;color:#000;background:#fff;
+  position:static;font-size:11.5px}
+.sheet th,.sheet td{padding:2px 4px}
+.sheet .b{font-weight:700}
+.sheet .r{text-align:right}
+.sheet .c{text-align:center}
+.sheet .mono{font-variant-numeric:tabular-nums}
+
+/* ---- A4 tax invoice ---- */
+.inv{width:194mm;margin:0 auto;border:1px solid #000}
+.inv .head{display:flex;align-items:center;border-bottom:1px solid #000}
+.inv .head .logo{width:34mm;padding:3mm;text-align:center}
+.inv .head .logo img{max-width:100%;max-height:26mm}
+.inv .head .who{flex:1;text-align:center;padding:2mm 3mm 3mm}
+.inv .head .co{font-size:25px;font-weight:700;letter-spacing:.5px;line-height:1.1}
+.inv .head .rule{border-top:2px solid #000;border-bottom:1px solid #000;height:3px;margin:2px 0 4px}
+.inv .head .ad{font-size:11.5px;line-height:1.45}
+.inv .band{display:flex;align-items:center;border-bottom:1px solid #000;padding:2px 6px;font-weight:700}
+.inv .band .mid{flex:1;text-align:center;font-size:15px;letter-spacing:5px}
+.inv .parties{display:flex;border-bottom:1px solid #000}
+.inv .parties .to{flex:1.25;border-right:1px solid #000;display:flex;flex-direction:column}
+.inv .parties .to .body{flex:1;padding:4px 7px;font-size:12px;line-height:1.5}
+.inv .parties .to .gst{border-top:1px solid #000;padding:3px 7px;font-size:11px}
+.inv .parties .meta{flex:1;font-size:12px}
+.inv .parties .meta .top{border-bottom:1px solid #000;padding:4px 7px;display:flex;
+  justify-content:space-between;font-size:13px}
+.inv .parties .meta .ln{padding:1.5px 7px;display:flex;gap:6px}
+.inv .parties .meta .ln i{font-style:normal;min-width:26mm}
+.inv .items th{border:1px solid #000;border-left:0;border-right:1px solid #000;
+  font-size:11.5px;background:#fff;text-align:center;position:static;color:#000;
+  text-transform:none;letter-spacing:0}
+.inv .items th:last-child{border-right:0}
+.inv .items td{border-right:1px solid #000;font-size:12px}
+.inv .items td:last-child{border-right:0}
+.inv .items tr.fill td{height:6.2mm}
+.inv .items tfoot td{border-top:1px solid #000;font-weight:700}
+.inv .foot{display:flex;border-top:1px solid #000}
+.inv .foot .left{flex:1.32;border-right:1px solid #000;display:flex;flex-direction:column}
+.inv .foot .bank{padding:4px 7px;font-size:11.5px;line-height:1.5}
+.inv .foot .right{flex:1;padding:5px 8px;display:flex;flex-direction:column}
+.inv .foot .right .ln{display:flex;justify-content:space-between;padding:2px 0;font-size:12px}
+.inv .foot .right .sp{flex:1}
+.inv .foot .right .grand{border:1.4px solid #000;background:#d9d9d9;font-weight:700;
+  font-size:14px;padding:3px 6px;display:flex;justify-content:space-between}
+.inv .gstsum{border-top:1px solid #000;font-size:10.5px}
+.inv .gstsum th,.inv .gstsum td{border:1px solid #000;border-left:0;padding:2px 4px}
+.inv .gstsum th{font-style:italic;font-weight:700;text-align:center;background:#fff}
+.inv .gstsum tr:last-child td{font-style:italic;font-weight:700}
+.inv .words{border-top:1px solid #000;padding:3px 7px;font-size:12px}
+.inv .sign{border-top:1px solid #000;display:flex;font-size:12px}
+.inv .sign>div{flex:1;padding:4px 8px}
+.inv .sign .rt{text-align:right}
+.inv .sign img{max-height:16mm}
+
+/* ---- landscape rough challan, two copies to a page ---- */
+.challan-page{display:flex;gap:6mm;width:281mm;margin:0 auto}
+.chal{flex:1;border:1.4px solid #000;display:flex;flex-direction:column;font-size:11.5px}
+.chal .top{text-align:center;font-weight:700;font-size:15px;padding:2px}
+.chal .hd{display:flex;border-top:1.4px solid #000;border-bottom:1.4px solid #000}
+.chal .hd .to{flex:1.6;border-right:1.4px solid #000;padding:4px 6px;
+  display:flex;flex-direction:column}
+.chal .hd .to .sp{flex:1;min-height:8mm}
+.chal .hd .meta{flex:1;padding:4px 6px;line-height:1.9}
+.chal .items th{border-right:1.4px solid #000;border-bottom:1.4px solid #000;
+  font-size:11.5px;font-weight:400;text-align:center;background:#fff;color:#000;
+  position:static;text-transform:none;letter-spacing:0}
+.chal .items th:last-child,.chal .items td:last-child{border-right:0}
+.chal .items td{border-right:1.4px solid #000;font-size:12.5px}
+.chal .items tr.fill td{height:6.4mm}
+.chal .items tfoot td{border-top:1.4px solid #000;font-weight:700}
+.chal .sums{display:flex;border-top:1.4px solid #000}
+.chal .sums .l{flex:1.45;border-right:1.4px solid #000}
+.chal .sums .l .bal{padding:4px 6px;border-bottom:1px solid #000}
+.chal .sums .l .row{padding:3px 6px;border-bottom:1px solid #000}
+.chal .sums .l .row:last-child{border-bottom:0}
+.chal .sums .r{flex:1;display:flex;flex-direction:column}
+.chal .sums .r .ln{display:flex;justify-content:space-between;padding:3px 6px;
+  border-bottom:1px solid #000;min-height:6.5mm}
+.chal .sums .r .ln.tot{font-weight:700;font-size:13px;border-bottom:0;
+  border-top:1.4px solid #000}
+.chal .ack{border-top:1.4px solid #000;display:flex;text-align:center}
+.chal .ack>div{flex:1;padding:3px 6px}
+.chal .ack>div+div{border-left:1.4px solid #000}
+.chal .ack .note{font-size:10.5px}
+.chal .ack img{max-height:12mm}
+
+@media (max-width:900px){
+  #sidebar{position:fixed;left:-212px;transition:left .2s;z-index:100}
+  #sidebar.open{left:0}
+  .g3,.g4{grid-template-columns:repeat(2,1fr)}
+  .wrap{padding:14px}
+}
+@media (max-width:600px){.g2,.g3,.g4{grid-template-columns:1fr}.sp2{grid-column:auto}}
+
+/* ------------------------------------------- voucher entry screen ------
+   Field names, order and grouping mirror the SHREE "Entry of Sale Voucher"
+   window so the screen reads the same to anyone trained on it.            */
+.voucher{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
+.vhead{background:var(--brand-dk);color:#fff;padding:8px 14px;font-size:13.5px;
+  font-weight:650;letter-spacing:.01em;display:flex;align-items:center;gap:10px}
+.vhead .rt{margin-left:auto;font-weight:400;font-size:12px;color:#a9cbe8}
+/* Windows' larger type: at 1366 the band broke inside every piece -- "Entry
+   of Sale / Voucher", "N.B.S. ENGINEERING's / account". Each piece stays
+   whole; the firm and year on the right give way first. */
+html.win .vhead{white-space:nowrap}
+html.win .vhead .rt{min-width:0;overflow:hidden;text-overflow:ellipsis}
+/* The voucher is laid out on one set of columns, top to bottom: the header,
+   the driver/terms/tax rows under it and the footer all split at the same
+   place, with the same padding, so every divider and every box edge on the
+   screen is one line, and every label starts at the same x. */
+.vtop{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);
+  gap:0;border-bottom:1px solid var(--line)}
+.vtop>div{padding:12px 14px}
+.vtop>div+div{border-left:1px solid var(--line);background:#fbfcfe}
+.vgrid{display:grid;grid-template-columns:162px minmax(0,1fr);
+  gap:10px 12px;align-items:center}
+.vgrid.wide{grid-template-columns:146px minmax(0,1fr)}
+.vgrid > label{margin:0;text-transform:none;font-size:15px;font-weight:600;
+  color:var(--ink);letter-spacing:0;text-align:left;white-space:nowrap}
+.vgrid > label.caps{text-transform:uppercase;font-size:14px;letter-spacing:.04em}
+.vgrid > label.tick{display:flex;gap:8px;align-items:center;font-weight:500;
+  white-space:normal}
+.vgrid > label.tick input{width:auto;height:auto}
+/* One height for every box on the form. A text box came out 49px, a
+   dropdown 45 and the date 51, so the two header columns drifted apart by a
+   few pixels a row and nothing across the divider sat level. The text in a
+   dropdown is set in a little, so its words start where a typed box's do. */
+.voucher{--box-h:48px}
+.voucher .vgrid > input,.voucher .vgrid > select,.voucher .vno > input,
+.voucher .partyrow .pickbox > input{height:var(--box-h);padding-top:0;padding-bottom:0}
+.voucher .vgrid > select{padding-left:11px}
+/* The party box, its list button and the button for a party not in the book
+   yet, one height on one line. */
+.partyrow{display:flex;gap:8px;align-items:center;min-width:0}
+.partyrow > .pickbox{flex:1;min-width:0}
+.partyrow > button{flex:0 0 auto;height:var(--box-h)}
+.vno{display:flex;gap:6px}
+.vno input:first-child{width:76px;text-align:center;text-transform:uppercase}
+
+.vfoot{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr);
+  border-top:1px solid var(--line)}
+/* A challan carries no By Dept and no Particulars, so its left side holds two
+   running totals and nothing else. Left at 1.35fr it was mostly empty air. */
+.vfoot.lean{grid-template-columns:minmax(0,.75fr) minmax(360px,1fr)}
+.vfoot>div{padding:14px}
+.vfoot>div+div{border-left:1px solid var(--line);background:#fbfcfe}
+/* On a bill, Particulars runs down to the Grand Total rather than stopping
+   short and leaving the left of the footer empty beside the totals. */
+.vfoot>div:first-child{display:flex;flex-direction:column}
+.vgrid.fill{flex:1;grid-template-rows:auto auto auto minmax(74px,1fr)}
+.vgrid.fill > textarea{align-self:stretch;height:auto;resize:none}
+/* The totals: every box one height, so the rows stand an even distance
+   apart -- the rows with a charge box in them used to be taller than the
+   ones without, and the column stepped. */
+.totrow{display:grid;grid-template-columns:1fr 138px 158px;gap:10px;
+  align-items:center;margin-bottom:8px}
+/* Windows' larger figures: at 1536 wide a challan's 1,81,300.00 ran out of
+   its box. */
+html.win .totrow{grid-template-columns:1fr calc(138px * var(--typescale))
+  calc(158px * var(--typescale))}
+.totrow > span{text-align:right;font-size:15.5px;color:var(--ink)}
+.totrow > input{height:44px;padding-top:0;padding-bottom:0}
+.totrow .out{height:44px;display:flex;align-items:center;justify-content:flex-end;
+  font-family:var(--mono);font-size:15.5px;padding:0 9px;
+  background:var(--line-soft);border:1px solid var(--line);border-radius:6px}
+.totrow.grand{margin-top:8px;padding-top:9px;border-top:2px solid var(--line)}
+.totrow.grand > span{font-size:18.5px;font-weight:700}
+.totrow.grand .out{height:50px;font-size:20.5px;font-weight:700;background:var(--brand-soft);
+  border-color:#c6dcf1;color:var(--brand-dk);justify-content:center}
+/* What is typed into a charge box sits in the middle of it, like the
+   figures in the grid; the worked-out figures beside it are centred as a
+   block by the screen (centreTotals). */
+.totrow > input.num{text-align:center}
+.totrow.tax > span{color:var(--muted);font-size:15px}
+.vactions{display:flex;gap:10px;align-items:center;padding:14px;
+  border-top:1px solid var(--line);background:#f7f9fc}
+@media (max-width:860px){
+  .vtop,.vfoot{grid-template-columns:1fr}
+  .vtop>div+div,.vfoot>div+div{border-left:0;border-top:1px solid var(--line)}
+}
+
+/* Choosing which official firm raises a bill. A form label everywhere else
+   is a small uppercase caption, so those defaults are undone here. */
+.firm-pick{display:flex;gap:11px;align-items:flex-start;padding:11px 13px;
+  border:1px solid var(--line);border-radius:7px;margin-bottom:8px;cursor:pointer;
+  font-size:16.5px;font-weight:400;color:var(--ink);
+  text-transform:none;letter-spacing:normal}
+.firm-pick:hover{border-color:var(--brand);background:var(--brand-soft)}
+.firm-pick input[type=radio]{width:auto;flex:0 0 auto;margin:3px 0 0;accent-color:var(--brand)}
+.firm-pick>span{flex:1;min-width:0}
+.firm-pick b{font-weight:650}
+.firm-pick small{display:block;font-size:14px;color:var(--muted);margin-top:2px;
+  text-transform:none;letter-spacing:normal;font-weight:400}
+
+/* Every item grid sets its own column widths and holds them: with the boxes
+   stretched to fill their cells they no longer carry an intrinsic width, so
+   an automatic layout would collapse the columns to their heading text.
+   The bill used to be left to negotiate its columns, and came out with the
+   item name squeezed and uneven gaps between the boxes; since Thickness and
+   Cutting size came off it (21 Sep 2026) it is fixed like the rest, with
+   narrower boxes than the order screen's so the name keeps the room. */
+.lineitems.fixed{table-layout:fixed}
+.lineitems.fixed td>input,.lineitems.fixed td>select{width:100%}
+.lineitems.fixed input.sub{font-size:14.5px;color:var(--muted)}
+/* The line under the product name: the item detail, and on a bill the HSN
+   beside it -- one height, one line, spanning exactly the name box's width. */
+.lineitems .subline{display:flex;gap:6px;align-items:stretch;margin-top:4px}
+.lineitems .subline > input.sub{flex:1;min-width:0}
+.lineitems .subline > .hsnlab{align-self:center;flex:none;margin-left:4px;
+  font-size:13.5px;font-weight:650;color:var(--muted)}
+.lineitems .subline > input.hsn{flex:0 0 118px;width:118px;font-size:14.5px}
+/* Windows' larger type: the eight figures want 103 to 113 as the type
+   grows with the window, and the item detail beside it ("0.60 CRCA 90.5
+   MM PATO") gets the rest. */
+html.win .lineitems .subline > input.hsn{flex-basis:calc(86px * var(--typescale));
+  width:calc(86px * var(--typescale))}
+/* The code list still opens as the code is typed; its arrow is left off so
+   the eight digits stand in the middle of the box instead of left of it. */
+.lineitems .subline > input.hsn::-webkit-calendar-picker-indicator{display:none !important}
+.lineitems.fixed input.sub:focus{color:var(--ink)}
+/* The whole first line of a row shares one top edge, so the boxes read across
+   as a single line with the note hanging under the item name. */
+.lineitems.fixed td{vertical-align:top}
+.lineitems.fixed td.pick{padding-top:4px}
+/* The row number, the worked-out figures and the delete button stand on the
+   middle of the boxes beside them: a line box as tall as a box, at the
+   box's own top. */
+.lineitems.fixed td.c,.lineitems.fixed td[data-o]{line-height:35px}
+.lineitems.fixed td.c > button{height:35px;padding-top:0;padding-bottom:0;vertical-align:top}
+/* The item name heading starts where the words in its box start. */
+.lineitems th.name{padding-left:13px}
+/* On the bill and challan every heading stands over the middle of its
+   column and every typed figure sits in the middle of its box, as on the
+   printed bill. Amount and Total are centred as a block by the grid itself
+   (centreFigures), so their decimal points still stack. The product name is
+   still typed from the left, under a centred heading, as Particulars is on
+   the printed bill. */
+.lineitems.centred th,.lineitems.centred th.r,.lineitems.centred th.name{
+  text-align:center;padding-left:6px;padding-right:6px}
+.lineitems.centred input.num,.lineitems.centred input.r{text-align:center}
+/* Below this the item name would be too narrow to read; the grid scrolls
+   sideways instead, as every wide table here does. It was 1020px, which
+   is wider than the grid's box on a 1280 screen (or 1920 at 150%, the
+   usual Windows laptop): the Total column was cut to "23,102." and the ✕
+   hidden (29 Sep 2026). At 880 the name still has 330px. */
+.lineitems.dense{min-width:880px}
+/* th.r/th.c align the cell; a box inside one needs telling separately. */
+.lineitems input.c{text-align:center}
+.lineitems input.r{text-align:right}
+
+/* Every number in the grid has to end on the same right edge. A typed number
+   sits inside a box, so its text is held off the cell edge by the cell's own
+   padding, then the box's border, then the box's padding -- thirteen pixels in
+   all. A computed cell and the heading above it have nothing in between, so
+   they are given the same inset by hand. Without this the Amount column and
+   its heading stood eight pixels to the right of the rates beside them. */
+.lineitems th.r,.lineitems td[data-o],.lineitems tfoot td.r{padding-right:13px}
+/* A centred figure (the GST rate) is centred under its heading, not inset. */
+.lineitems td.c[data-o]{padding-right:5px}
+
+/* --------------------------------------------------- the product on a line
+   The item name box and, beside it, the button that opens the whole product
+   list. Typing finds a product you can already name; the button is for the
+   times you cannot, and lays every one out with its HSN and its rate. */
+.pickbox{display:flex;gap:4px;align-items:stretch}
+.pickbox>input{flex:1;min-width:0}
+.lineitems.fixed td>.pickbox{width:100%}
+.pickbtn{flex:none;width:27px;padding:0;font-size:14.5px;line-height:1;gap:0;
+  justify-content:center;color:var(--muted);border-color:var(--line-soft)}
+.pickbtn:hover{color:var(--brand);border-color:var(--brand);background:var(--brand-soft)}
+/* On the bill and challan the arrow sits inside the end of its box, the way
+   a dropdown's does, instead of as a narrow box of its own beside it. It
+   read as a stray box, it took 31px from the product name, and the note box
+   under the name now has exactly the name box's width. Other screens keep
+   the separate button. */
+.voucher .pickbox{position:relative}
+.voucher .pickbox > input{padding-right:32px}
+.voucher .pickbox > .pickbtn{position:absolute;top:1px;right:1px;bottom:1px;width:30px;
+  border:0;border-radius:0 6px 6px 0;background:transparent}
+.voucher .pickbox > .pickbtn:hover{background:var(--brand-soft)}
+/* The running totals under a grid stay on the right, also when a long bill
+   pushes them onto a line of their own under the buttons. */
+#lg-tot{margin-left:auto;text-align:right}
+
+/* Under the name, what the line is actually carrying -- the HSN, unit and GST
+   rate that came off the product. A line typed straight in says so, and says
+   it in warn colour when it has no HSN: that is the line the GST return will
+   ask about. */
+.picked{font-size:13.5px;line-height:1.5;margin-top:3px;color:var(--muted);
+  font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.picked:empty{display:none}
+.picked.on{color:var(--ok)}
+.picked .warn{color:var(--warn);font-weight:650}
+
+/* And under that, how many of them the firm has. Its own line, not squeezed
+   onto the end of the HSN note: the name column is narrow, that note already
+   fills it, and the two say different things -- one is what the goods are,
+   this is how many there are. Red when the line asks for more than is there;
+   it does not stop the bill, it just refuses to be missed.
+
+   The width pair is what keeps it from widening the grid. The item name's
+   column is laid out from its contents, and a line of nowrap text inside it
+   counts towards that -- so the note pushed the column 51px wider and shoved
+   the Total column off the right edge. width:0 leaves nothing to measure and
+   min-width:100% then fills whatever the column settled at. */
+.stk{font-size:13px;line-height:1.45;color:var(--muted);
+  font-family:var(--mono);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;width:0;min-width:100%}
+.stk:empty{display:none}
+.stk.short{color:var(--bad);font-weight:650}
+
+/* HSN is a code, not prose: it reads and checks quicker set in the same
+   figures as the rest of the grid.
+
+   It used to show about six of the eight digits: widening it cost width the
+   negotiated grid did not have and pushed Total off the right edge. Since
+   the grid is laid out fixed (21 Sep 2026) the width comes out of the item
+   name instead, and all eight digits show. */
+.lineitems input.hsn{font-family:var(--mono);font-size:15px}
+
+/* The product dialog's list. The row under the cursor -- or the one the arrow
+   keys walked to -- is the one Enter takes, so it is the one marked. */
+.pick-table tbody tr{cursor:pointer}
+.pick-table tbody tr.hi{background:var(--brand-soft)}
+
+/* ------------------------------------------------------------------ lock
+   The passcode screen. It takes the whole window: the books must not be
+   readable behind it. */
+.lock-wrap{position:fixed;inset:0;display:flex;align-items:center;
+  justify-content:center;background:var(--bg);padding:24px}
+.lock{background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);padding:30px 28px;width:100%;max-width:360px;
+  box-shadow:0 8px 30px rgba(16,32,64,.10)}
+.lock h1{margin:0 0 6px;font-size:25.5px;letter-spacing:-.01em}
+.lock p{margin:0 0 18px;font-size:15.5px;color:var(--muted);line-height:1.5}
+.lock input{width:100%;margin-bottom:10px}
+.lock button{width:100%}
+.lock-msg{min-height:18px;margin-top:10px;font-size:15px;color:var(--bad)}
+
+/* -------------------------------------------------- e-way bill checks --
+   A list of what the portal would say, each line led by its own tag so the
+   refusals read apart from the things merely worth a look. */
+.notes{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.notes li{display:flex;gap:8px;align-items:flex-start;font-size:15.5px;line-height:1.45}
+.notes li .tag{flex:none;margin-top:1px}
+.eway-doc{padding:12px 0;border-bottom:1px solid var(--line-soft)}
+.eway-doc:last-child{border-bottom:0;padding-bottom:0}
+.eway-doc>.row{margin-bottom:8px}
+#list tr.on,#out tr.on{background:var(--brand-soft)}
+#out tr.on td{font-weight:600}
+
+/* ================================================== keyboard operation ==
+   The whole app is meant to be worked without a mouse, so anything the
+   keyboard can reach has to be visible when it gets there and has to say
+   which key reaches it. Three things do that work: a focus ring on every
+   focusable thing (the app had one on boxes only), a cursor line in every
+   list, and the small numbered badges that name a key.                    */
+
+/* Where the keyboard is, always visible -- and only for the keyboard, so a
+   mouse click does not leave a ring behind it. */
+button:focus-visible,a:focus-visible,[tabindex]:focus-visible,
+summary:focus-visible{
+  outline:3px solid var(--focus);outline-offset:2px;border-radius:4px;
+  box-shadow:0 0 0 6px var(--focus-halo);
+}
+/* Where the keyboard is standing in the menu. The thin ring alone was hard
+   to pick out against a dark sidebar, so the entry lights up the way the
+   current screen's entry does -- one shade brighter, and a bar down its
+   edge, so "where I am" and "where I would go" are told apart. */
+/* `:focus`, not `:focus-visible`: a menu entry is only ever focused on
+   purpose, and clicking one navigates away in the same breath -- so there is
+   no stray ring to avoid, and the highlight is reliable however the focus
+   arrived. */
+/* 22 Sep 2026: the menu is walked with ↑ ↓ and opened with Enter, so the
+   entry the highlight is on reads as a bar of its own, light on the dark
+   menu -- told apart at a glance from the screen that is open (.on). */
+nav a:focus{outline:none;background:#e8f0f9;color:var(--brand-dk);
+  border-left-color:#63b3f5;font-weight:650}
+nav a:focus .ic{opacity:1}
+/* Boxes already light up on focus above, mouse or keyboard alike -- one
+   treatment, so a box does not look different depending on how it was
+   reached. Only the things that are not boxes need the keyboard-only ring. */
+
+/* The cursor line in a list. It has to read apart from the hover shade and
+   from .on, which already means "this row is picked". */
+tbody tr.kb{background:var(--brand-soft);outline:none}
+tbody tr.kb>td:first-child{box-shadow:inset 3px 0 0 var(--brand)}
+tbody tr.kb:focus{outline:none;box-shadow:none}
+.bsline.kb:focus{outline:none}
+tbody tr.kb.on{background:#d6e6f6}
+/* With the keyboard on a box, a button, the menu or a dialog, the line
+   lets go of its mark: one thing looks chosen at a time (5 Oct 2026). */
+body.kb-away tbody tr.kb:not(.on){background:none}
+body.kb-away tbody tr.kb>td:first-child{box-shadow:none}
+body.kb-away .bsline.kb{background:none;box-shadow:none}
+/* The lines of the Profit & Loss and the Balance Sheet take the cursor too. */
+.bsline.kb{background:var(--brand-soft);box-shadow:inset 3px 0 0 var(--brand);outline:none}
+/* A row walked to is never left under the bar at the top, the headings that
+   stay in view, or the keys along the foot. */
+tbody tr.kb,.bsline.kb{scroll-margin-top:calc(var(--topbar-h,70px) + 48px);
+  scroll-margin-bottom:calc(var(--kbbar-h,0px) + 16px)}
+
+/* The keys, as F1 shows them -- and as they print, to keep by the keyboard. */
+.keyguide .lead{margin:0 0 12px;font-size:15px;color:var(--muted)}
+.keyguide h3{margin:18px 0 7px;font-size:12.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted)}
+.keyguide h3:first-of-type{margin-top:4px}
+.keyguide table.keys td{vertical-align:top;padding:5px 8px}
+.keyguide table.keys td:first-child{width:200px}
+.keyguide table.keys .kbd{display:inline-block;margin:0 2px 3px 0;color:var(--ink)}
+@media print{
+  #print-area[data-format="keys"] .keyguide{font-size:11.5px;column-count:2;column-gap:10mm}
+  #print-area[data-format="keys"] .keyguide h2{column-span:all;font-size:16px;margin:0 0 8px}
+  #print-area[data-format="keys"] .keyguide h3{break-after:avoid;margin:10px 0 4px}
+  #print-area[data-format="keys"] .keyguide table{break-inside:auto}
+  #print-area[data-format="keys"] .keyguide tr{break-inside:avoid}
+  #print-area[data-format="keys"] .keyguide td{padding:2px 4px;border:0}
+  #print-area[data-format="keys"] .keyguide td:first-child{width:36%}
+}
+
+/* The way to every key, at the top right of every screen. */
+#keys-btn{flex:none;color:var(--muted);font-weight:500;margin-left:auto}
+#keys-btn .kbd{font-size:12px;padding:0 4px}
+
+/* **The bar at the top stays one row on a laptop** (29 Sep 2026). At 1280
+   wide the Keys button fell onto a row of its own and a long subtitle ran to
+   three lines, so the bar that stays on screen took up to 161px of a 720px
+   screen on Challan Stock, Cash, a staff page and a bill. The subtitle is
+   one line now -- all of it in its tooltip -- and below 1500 wide the Keys
+   button drops its word and keeps ⌨ F1. */
+.topbar h1{overflow:hidden}
+.topbar .sub{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:1500px){
+  #keys-btn .kw{display:none}
+  .topbar{gap:10px;padding-left:20px;padding-right:20px}
+  #page-actions{gap:8px}
+  #page-actions > button{padding-left:10px;padding-right:10px}
+}
+/* Windows' larger type (top of this file) needs the same up to 1700: at
+   1536 -- a 1920 screen at 125% -- a bill's six buttons put Delete on a
+   second line and the title on two. */
+@media (min-width:1501px) and (max-width:1700px){
+  html.win #keys-btn .kw{display:none}
+  html.win .topbar{gap:10px;padding-left:20px;padding-right:20px}
+}
+/* And a little closer still. Where a bill's six buttons do not fit even
+   so they go onto a second line -- with the title kept on one. */
+@media (max-width:1700px){
+  html.win .topbar{gap:8px}
+  html.win #page-actions{gap:6px}
+  html.win #page-actions > button{padding-left:8px;padding-right:8px}
+}
+html.win .topbar h1{min-width:min(calc(220px * var(--typescale)),100%)}
+/* Past the phone layout the bar is one line: a screen with many buttons
+   folds them onto a second line of their own, and the title and Keys stay
+   where they are. Wrapping the whole bar put Keys alone on a line. */
+@media (min-width:901px){
+  .topbar{flex-wrap:nowrap}
+  #page-actions{flex:0 1 auto;min-width:0;justify-content:flex-end}
+}
+
+/* No key badges on anything since 23 Sep 2026: the arrows go to a thing
+   and Enter does it. What the arrows stand on has to show, so every stop
+   is lit -- a tick box's words light up with it, and the ▾ beside a
+   customer or product box, which only the arrows reach, gets a ring. */
+label:focus-within:has(> input[type=checkbox],> input[type=radio]){color:var(--brand-dk)}
+.pickbtn:focus{outline:3px solid var(--focus);outline-offset:1px;background:var(--brand-soft)}
+
+/* The keys, along the foot of the window. Always there since 22 Sep 2026,
+   and always about where the focus is: a list row, a box on a bill, a
+   dialog, the menu. The left side is what can be done here and is cut off,
+   not wrapped, on a narrow window; the right side is the way to everything
+   else and always shows. It can be switched off from F1. */
+#kbbar{position:fixed;left:0;right:0;bottom:0;z-index:160;display:none;
+  gap:14px;align-items:center;padding:7px 16px;font-size:14.5px;
+  background:var(--brand-dk);color:#cfe0f0;white-space:nowrap;
+  box-shadow:0 -2px 10px rgba(16,32,48,.18)}
+#kbbar.on{display:flex}
+body.kbbar-off #kbbar{display:none !important}
+#kbbar b{color:#fff;font-weight:600}
+/* One line of whole hints: those that do not fit wrap onto a second line,
+   which is never shown -- nothing is cut off mid-word, and nothing has to be
+   measured on each key (5 Oct 2026). The most needed come first (barBits). */
+#kbbar .kb-l{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;
+  align-content:flex-start;flex:1;min-width:0;height:24px;overflow:hidden}
+/* Each hint a box of its own height, so the strip holds it whatever the
+   font: Windows' Segoe UI and Consolas stand taller than the Mac's, and a
+   strip sized by the line height shaved the foot off every hint there. */
+#kbbar .kb-l>span{flex:none;display:inline-flex;align-items:center;height:24px}
+#kbbar .kb-l>span>.k{line-height:15px}
+#kbbar .k{font-family:var(--mono);font-size:13px;font-weight:700;
+  background:rgba(255,255,255,.16);color:#fff;border-radius:4px;
+  padding:1px 6px;margin-right:5px}
+#kbbar .sp{margin-left:auto;display:flex;gap:14px;align-items:center;flex:none;
+  color:#9fbfdd}
+#kbbar .sp .new{color:#fff;font-weight:600}
+#kbbar .sp .new .k{background:#63b3f5;color:var(--brand-dk)}
+@media print{#kbbar{display:none !important}}
+
+/* The foot bar covers the bottom of the page, so the page gives it room --
+   otherwise the last row of a list sits underneath it and cannot be read. */
+body.kb-on .wrap{padding-bottom:52px}
+
+/* ------------------------------------------------- the HSN on a bill ---
+   A bill raised from a challan carries the challan's lines, and the challan
+   book holds one generic product with no HSN against it. The portal refuses
+   a line without one, so the bill says so before it is saved rather than the
+   e-way screen saying so after the lorry is loaded. */
+.hsn-band{display:flex;align-items:center;gap:10px;margin:0 0 8px;padding:9px 12px;
+  background:var(--warn-soft);border:1px solid #f0d9ae;border-radius:var(--radius);
+  font-size:15.5px;line-height:1.45}
+.hsn-band>div{flex:1}
+.hsn-band .tag{flex:none}
+.hsn-band button{flex:none}
+@media print{.hsn-band{display:none !important}}
+
+/* Sits along the bottom when the files on disk have moved on from the page
+   in front of you. Deliberately in the way, and deliberately not automatic. */
+#update-bar{position:fixed;left:0;right:0;bottom:var(--kbbar-h,0px);z-index:9000;
+  background:#16202c;color:#fff;padding:10px 16px;font-size:15.5px;
+  display:flex;gap:10px;align-items:center;justify-content:center}
+#update-bar .link{color:#8ec5ff;font-weight:600}
+
+/* ------------------------------------------------------- SHREE update */
+#books-bar{position:fixed;left:0;right:0;bottom:var(--kbbar-h,0px);z-index:8999;
+  background:#5b3a06;color:#fff;padding:10px 16px;font-size:15.5px;
+  display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
+#books-bar .link{color:#ffd48a;font-weight:600}
+#update-bar~#books-bar,#books-bar~#update-bar{bottom:calc(44px + var(--kbbar-h,0px))}
+.kpi .vl.sm{font-size:19.5px}
+label.check{display:flex;gap:8px;align-items:center;margin:0;cursor:pointer;
+  text-transform:none;letter-spacing:0;font-size:15.5px;color:var(--ink)}
+label.check input{width:auto}
+textarea.mono,td.mono{font-family:var(--mono);font-size:14px}
+button.link.danger-link{color:var(--bad)}
+.sync-live{border-color:var(--brand)}
+.sync-track{height:8px;border-radius:4px;background:var(--line-soft);
+  margin-top:10px;overflow:hidden}
+.sync-track i{display:block;height:100%;width:0;background:var(--brand);
+  border-radius:4px;transition:width .4s ease}
+.sync-log{background:var(--line-soft);padding:10px 12px;border-radius:6px;
+  font-size:12.5px;line-height:1.45;max-height:320px;overflow:auto;
+  white-space:pre-wrap;word-break:break-word;margin:8px 0 0}
+.sync-notes{list-style:none;padding:0;margin:0 0 12px}
+.sync-notes li{display:flex;gap:8px;align-items:baseline;padding:3px 0}
+.sync-sec{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.sync-sec summary{cursor:pointer;font-weight:600}
+.sync-sec summary b{color:var(--muted);font-weight:600;margin-left:4px}
+.sync-sec table{margin-top:8px}
+.mono{font-family:var(--mono);font-size:14px}
+.sync-warn{display:flex;gap:10px;align-items:baseline;margin:12px 16px 0;
+  padding:10px 12px;border-radius:6px;background:var(--bad-soft);color:var(--ink)}
+.fp-list{max-height:340px;overflow:auto;border:1px solid var(--line);
+  border-radius:6px;margin-top:10px}
+.fp-list .empty{padding:18px}
+button.fp-item{display:flex;width:100%;gap:10px;align-items:center;text-align:left;
+  border:0;border-bottom:1px solid var(--line-soft);border-radius:0;
+  background:none;padding:8px 12px;font-weight:450}
+button.fp-item:hover,button.fp-item:focus-visible{background:var(--brand-soft)}
+button.fp-item .grow{flex:1;min-width:0;overflow-wrap:anywhere}
+label.check.fp-cand{align-items:flex-start;padding:10px 0;
+  border-bottom:1px solid var(--line-soft)}
+label.check.fp-cand input{margin-top:4px}
+
+/* ------------------------------------------------------ ticked for delete */
+th.sel-cell,td.sel-cell{width:38px;padding-left:12px;padding-right:0;cursor:pointer}
+.sel-cell input{width:auto;margin:0;cursor:pointer}
+.sel-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  margin:0 0 12px;padding:9px 14px;border:1px solid var(--line);
+  border-radius:var(--radius);background:var(--brand-soft);
+  position:sticky;top:var(--topbar-h,70px);z-index:6;box-shadow:var(--shadow)}
+.sel-bar[hidden]{display:none}
+.sel-bar .sel-n{font-weight:650}
+.sel-bar .sel-sum{color:var(--muted)}
+.bulk-head{margin:0 0 6px;font-size:14.5px;font-weight:600}
+.bulk-list{margin:0 0 12px 18px;padding:0;font-size:14px;max-height:220px;overflow:auto}
+.bulk-list li{margin:2px 0}
+.bulk-list .hint{margin:0 0 0 6px;display:inline}
+.bulk-list .hint.why{display:block;margin:0}
+label.check.bulk-also{align-items:flex-start;margin:4px 0 8px;padding:10px 12px;
+  border:1px solid var(--line);border-radius:6px;background:var(--warn-soft)}
+label.check.bulk-also input{margin-top:4px}
+/* Deleting what is in use: the two ways it can go (26 Sep 2026). */
+label.check.del-way{align-items:flex-start;margin:0 0 8px;padding:10px 12px;
+  border:1px solid var(--line);border-radius:6px}
+label.check.del-way:has(> input:checked){border-color:var(--brand);
+  background:var(--brand-soft)}
+label.check.del-way > input{margin-top:4px}
+label.check.del-way > span{flex:1;min-width:0}
+label.check.del-way #del-to{width:100%;margin-top:2px}
+
+/* ---------------------------------------------------- bank & cash ------
+   Reworked on 21 Sep 2026: one row of filters, cards that follow the account
+   being read, a list split into Bank and Cash with one line an account, and
+   tables laid out fixed so they fit the page instead of running off it. */
+.bankbar .grow{flex:1;min-width:200px}
+.bankbar select[data-fy]{width:calc(180px * var(--typescale)) !important}
+label.tick{display:inline-flex;gap:7px;align-items:center;margin:0;cursor:pointer;
+  text-transform:none;letter-spacing:0;font-size:14.5px;font-weight:500;color:var(--ink)}
+label.tick input{width:auto;margin:0}
+.kpis.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:1100px){.kpis.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* With Windows' larger type four in a row is too tight under 1400 wide: the
+   Trial Balance's ₹1,00,03,80,718.40 ran out of its card at 1366. */
+@media (max-width:1399px){html.win .kpis.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.card>h2 .meta{font-weight:400;font-size:13.5px;color:var(--muted)}
+.card>h2 .rt{gap:14px}
+.card .bd.note{border-top:1px solid var(--line);font-size:13.5px;color:var(--muted)}
+.card .bd.note.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.banktbl{table-layout:fixed;width:100%}
+.banktbl th,.banktbl td{padding:10px}
+.banktbl td.num{font-size:14.5px}
+/* The set columns, and how they narrow with the window (29 Sep 2026). Set
+   once for 1366 and up, they left the name nothing below that: at 1100 wide
+   a statement's Particulars came to no width at all -- its heading gone,
+   "KOTAK / BANK / : / B. / S." a word a line -- and the account list the
+   same. Each step down still holds ₹14,09,29,304.26 and 2,59,24,764.00 Dr
+   whole; below 1180 the City goes beside the party's name, and only below
+   1020 does a table scroll sideways rather than crush the name. */
+.bankbook{--w-date:108px;--w-city:96px;--w-chq:120px;--w-amt:152px;--w-bal:170px;
+  --w-n:72px;--w-mn:110px;--w-go:32px}
+.banktbl col.w-date{width:var(--w-date)}
+.banktbl col.w-city{width:var(--w-city)}
+.banktbl col.w-chq{width:var(--w-chq)}
+.banktbl col.w-amt{width:var(--w-amt)}
+.banktbl col.w-bal{width:var(--w-bal)}
+.banktbl col.w-n{width:var(--w-n)}
+.banktbl col.w-mn{width:var(--w-mn)}
+.banktbl col.w-go{width:var(--w-go)}
+.banktbl .pcity{display:none}
+/* Windows' larger type: the dates, the amounts and the Entries heading ran
+   into the next column. */
+@media (min-width:1181px) and (max-width:1300px){
+  html.win .bankbook{--w-amt:146px;--w-bal:164px;--w-n:80px}
+}
+@media (min-width:1021px) and (max-width:1180px){
+  html.win .bankbook{--w-date:104px;--w-amt:142px;--w-bal:158px;--w-n:76px}
+}
+@media (min-width:1301px){
+  html.win .bankbook{--w-amt:160px;--w-bal:180px;--w-n:88px}
+}
+@media (min-width:1400px){
+  html.win .bankbook{--w-date:116px;--w-amt:170px;--w-bal:190px;--w-n:94px}
+}
+@media (min-width:1600px){
+  html.win .bankbook{--w-date:122px;--w-amt:182px;--w-bal:204px;--w-n:98px}
+}
+@media (max-width:1300px){
+  .bankbook{--w-date:104px;--w-city:84px;--w-chq:100px;--w-amt:136px;--w-bal:154px;
+    --w-n:72px;--w-mn:90px;--w-go:26px}
+  .banktbl th,.banktbl td{padding-left:7px;padding-right:7px}
+  .banktbl th{letter-spacing:.02em}
+  .banktbl td.num{font-size:13.5px}
+}
+@media (max-width:1180px){
+  .bankbook{--w-date:100px;--w-city:0px;--w-chq:90px;--w-amt:132px;--w-bal:148px;
+    --w-n:68px;--w-mn:80px;--w-go:24px}
+  .banktbl th{font-size:12.5px;letter-spacing:0}
+  .banktbl td.num{font-size:13px}
+  .banktbl th.city,.banktbl td.city{padding:0;font-size:0;overflow:hidden}
+  .banktbl .pcity{display:inline;margin-left:7px;font-size:12.5px;color:var(--muted);
+    font-weight:500}
+  /* Year, From and To on one line; the account and Apply on the next,
+     rather than Apply alone under a squeezed account box. */
+  .bankbar .grow{min-width:320px}
+}
+@media screen and (max-width:1020px){
+  .bankbook{--w-date:96px;--w-chq:80px;--w-amt:128px;--w-bal:142px}
+  .banktbl td.num{font-size:12.5px}
+  .bankbook .bd.flush{overflow-x:auto}
+  .bankbook .banktbl{min-width:680px}
+  /* Held under the top bar, a heading inside a box that scrolls sideways
+     is held that far down the box instead -- into the middle of the rows. */
+  .bankbook .banktbl thead th{position:static}
+}
+/* On paper -- A4, 733px across -- small figures in narrow columns, and the
+   name given what is left. Printed with the screen's widths, a statement's
+   Particulars was down to 75px and a long account number ran across the
+   Ch/DD column (29 Sep 2026). */
+@media print{
+  .bankbook{--w-date:72px;--w-city:0px;--w-chq:70px;--w-amt:100px;--w-bal:120px;
+    --w-n:52px;--w-mn:64px;--w-go:0px}
+  .banktbl th,.banktbl td{padding:4px 5px}
+  .banktbl th{font-size:9.5px;letter-spacing:0}
+  .banktbl td{font-size:11px}
+  .banktbl td.pt b,.banktbl td.acct b{font-size:11.5px}
+  .banktbl td.num{font-size:10.5px}
+  .banktbl td .note,.banktbl td.chq{font-size:10px}
+  .banktbl th.city,.banktbl td.city,.banktbl td.go{padding:0;font-size:0;overflow:hidden}
+  .banktbl .pcity{display:inline;margin-left:5px;font-size:10px;color:#555}
+  .bankbook tbody tr.kb{background:none}
+  .bankbook tbody tr.kb>td:first-child{box-shadow:none}
+}
+/* Headings stay in view under the bar at the top of the page as a long
+   list or statement scrolls; a month's own headings inside it do not. */
+.banktbl thead th{top:var(--topbar-h,0px);z-index:3}
+.banktbl.inner{margin:0}
+.banktbl.inner th{position:static;background:#f7f9fc}
+/* A name too long for the column goes onto a second line. It used to end in
+   an ellipsis, and the part cut off was the holder's name -- "AUSF :
+   2211247643346281 (VIPULBH…" -- the one thing that tells the family's
+   accounts apart (21 Sep 2026). */
+.banktbl td.acct{white-space:normal;overflow-wrap:anywhere}
+/* Accounts with nothing in them, listed only when asked for, at the foot. */
+.banktbl tr.asleep td,.banktbl tr.asleep td b{color:var(--muted)}
+.banktbl tr.asleep td b{font-weight:600}
+.banktbl tr.grp.asleep td{border-top:1px solid var(--line)}
+.kpi .ft .own{font-size:12.5px}
+/* The receipt and payment dialog, after "Save & add another". */
+.v-saved{margin:-4px 0 14px;padding:9px 12px;border-radius:7px;
+  background:var(--ok-soft);color:var(--ok);font-size:14.5px;font-weight:500}
+/* A transfer: From, the swap, To. */
+.xfer{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  gap:10px;align-items:start;margin-top:12px}
+.xfer #x-swap{margin-top:27px;font-size:17px;padding:6px 11px}
+@media (max-width:600px){.xfer{grid-template-columns:1fr}.xfer #x-swap{margin:0}}
+.banktbl td.pt b,.banktbl td.acct b{font-size:15px}
+.banktbl td.acct .code{font-size:12px}
+.banktbl td .code{font-size:12.5px;color:var(--muted);font-family:var(--mono);margin-left:4px}
+.banktbl tr.grp td{background:#f7f9fc;font-size:13.5px;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.04em;padding-top:8px;padding-bottom:8px}
+.banktbl tr.grp td b{color:var(--ink)}
+.banktbl tr.grp td span{margin-left:8px;text-transform:none;letter-spacing:0}
+.banktbl tr.grp td.num{text-transform:none;letter-spacing:0;color:var(--ink)}
+.banktbl td.go{color:var(--muted);font-size:21px;line-height:1;padding-left:0;padding-right:0}
+.banktbl tr.clickable:hover td.go{color:var(--brand)}
+.banktbl td.city,.banktbl td.chq{color:var(--muted);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.banktbl td.city{font-size:13px}
+.banktbl td.chq{font-size:13.5px}
+.banktbl td .note{font-size:13px;color:var(--muted);font-weight:400}
+.banktbl .note-inline{font-size:13px;color:var(--muted)}
+.banktbl tr.bf td{background:#fbfcfe}
+.stmt>h2 .tag{margin-left:8px;font-weight:500}
+/* 29 Sep 2026. A figure stays on one line -- a closing balance broke its
+   "Dr" onto a line of its own -- and one too long for its card is drawn
+   smaller to fit (fitFigures in app.js), never over the next card. */
+.bankbook .kpi .vl{white-space:nowrap}
+/* In a narrower window the right-hand side of a card's heading -- the dates,
+   the entry count, All bank accounts -- goes under the name as one piece,
+   rather than the dates breaking in the middle ("637 / entries"). */
+.bankbook .card>h2{flex-wrap:wrap;row-gap:8px}
+.bankbook .card>h2 .rt{flex-wrap:wrap;justify-content:flex-end;row-gap:6px}
+.bankbook .card>h2 .meta{white-space:nowrap}
+.stmt-tools{display:flex;gap:10px;align-items:center;padding:12px 16px;
+  border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+/* Wide enough to read what it asks for; narrower, the view buttons go
+   under it instead of cutting it to "Find party, cheque / UPI re". */
+.stmt-tools input[type=search]{flex:1;max-width:460px;padding:9px 12px;font-size:15.5px}
+.bankbook .stmt-tools input[type=search]{min-width:310px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;flex:none}
+.seg button{border:0;border-radius:0;padding:8px 16px;font-size:14.5px;background:#fff}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--brand);color:#fff}
+/* The keyboard's ring goes inside a grouped button: the group clips what
+   is drawn outside one, and the ring every other button gets showed as a
+   sliver down one edge (4 Oct 2026, ✎ Correct stock in the stock form).
+   On a chosen button it is white within a dark edge, so it reads on blue,
+   green and red alike. */
+.seg button:focus-visible{outline:none;border-radius:0;background:var(--brand-soft);
+  color:var(--brand-dk);box-shadow:inset 0 0 0 3px var(--focus),inset 0 0 0 7px var(--focus-halo)}
+.seg button.on:focus-visible,.seg.bigseg button.on:focus-visible{color:#fff;
+  box-shadow:inset 0 0 0 3px var(--brand-dk),inset 0 0 0 6px #fff}
+.seg button.on:focus-visible{background:var(--brand)}
+/* A statement read month by month: the months of the dates asked for along
+   the top, each with its count of entries, and Prev / Next either side. */
+.monthnav{display:flex;gap:8px;align-items:stretch;padding:10px 16px;
+  border-bottom:1px solid var(--line-soft);background:#fbfcfe}
+.monthnav > button{flex:none;padding:8px 14px;font-size:14.5px}
+/* ‹ Prev at the first month, Next › at the last: greyed, but still there for
+   the keyboard to stand on (a bank or cash statement, 29 Sep 2026). */
+.monthnav > button.end,.monthnav > button.end:hover{opacity:.5;background:#fff;cursor:default}
+.monthnav > button.end:active{transform:none}
+.mchips{display:flex;gap:4px;flex:1;min-width:0}
+.mchip{flex:1;min-width:0;flex-direction:column;gap:1px;padding:5px 2px;
+  font-size:13.5px;line-height:1.2;justify-content:center;border-color:var(--line-soft)}
+.mchip b{font-weight:650;white-space:nowrap}
+.mchip small{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.mchip.none{color:var(--muted);background:#f7f9fc}
+.mchip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.mchip.on small{color:#d6e6f5}
+.mpick{flex:1;max-width:420px}
+/* The months of an account's year, on a month's own page: the bar is the
+   whole card, so it takes the card's edge rather than drawing its own. */
+.monthnav.acctmonth{border-bottom:0;border-radius:inherit}
+/* The month being left, while the next one is read. */
+#out.turning{opacity:.45}
+.banktbl td.muted-cell{color:var(--muted);font-style:italic}
+
+/* A rate offered off the customer's last challan (23 Sep 2026): tinted
+   until it is typed over, so a price nobody has looked at stands out. The
+   tag at the top of the challan says which challan it came from. */
+.lineitems input.autorate:not(:focus){background:var(--brand-soft);color:var(--brand-dk)}
+
+/* ---------------------------------------------------- challan stock ----
+   The steel a challan line takes out of the yard: type, quality and
+   thickness on a line of their own under the item detail, sharing the name
+   box's width -- and under them what is in stock and what the line leaves. */
+/* Typed and picked, like the product box (26 Sep 2026, second pass). */
+.lineitems .subline.steelline > input.steelbox{flex:1 1 0;min-width:0;font-size:14.5px}
+.lineitems .subline.steelline > input[data-steel=steel_thick]{flex:0 0 132px}
+.stk.steelnote{margin-top:2px}
+/* A line of stock gone below nothing. */
+td.neg{color:var(--bad)}
+/* The stock-in dialog's lines: each box fills its column. */
+.steelgrid td>select,.steelgrid td>input{width:100%}
+.steelgrid td{padding:4px 5px}
+/* Challan Stock screen (26 Sep 2026, second pass). The stock table and every
+   history opened under it share one set of columns (the <colgroup> in the
+   screen), laid out fixed, so a history's figures stand under the headings
+   they belong to. */
+table.steeltbl,table.steelhist{table-layout:fixed}
+table.steelhist{margin:0;background:#fbfcfe}
+table.steelhist td{border-bottom:1px solid var(--line-soft)}
+.steeldate{display:inline-block;min-width:96px;color:var(--muted);font-size:14px}
+tr.gone td{color:var(--muted)}
+/* The billing firms' stock: seven columns of kilos have to sit beside the
+   material's name at a laptop's width, so they sit closer together, and each
+   firm's share -- a split of the column before it -- in smaller figures. */
+table.stocktbl th.r,table.stocktbl td.r{padding-left:8px;padding-right:8px}
+table.stocktbl th.r:last-child,table.stocktbl td.r:last-child{padding-right:14px}
+table.stocktbl td.share{font-size:13.5px;color:var(--muted)}
+/* With stock added or removed by hand there is one column more. */
+table.stocktbl.byhand{font-size:14px}
+table.stocktbl.byhand th{font-size:12.5px;letter-spacing:.02em}
+table.stocktbl.byhand th.r,table.stocktbl.byhand td.r{padding-left:5px;padding-right:5px}
+table.stocktbl.byhand td.share{font-size:12.5px}
+/* Stock added, removed or counted by hand: the form's lines, the figures
+   beside each, and the material list's stock on the right of each name. */
+.stockgrid td>input{width:100%}
+.stockgrid td{padding:4px 6px}
+.stockgrid th{font-size:13px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.stockgrid .neg,.steelgrid .neg,.pick-list .neg{color:var(--bad)}
+.pick-list .pos{color:var(--ok)}
+.stockgrid input.wrong{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+/* The stock screens made easy (27 Sep 2026): the tabs over the screen, one
+   plain line saying what it is for, a line's own Add / Remove / Correct, and
+   in the form the three big choices and the firm as buttons. */
+.seg.stocktabs{margin:0 0 10px}
+.seg.stocktabs button{padding:9px 20px;font-size:15px;font-weight:600}
+.stocksay{margin:0 0 12px;font-size:14px;color:var(--muted);line-height:1.5}
+.stocksay a{white-space:nowrap}
+.rowacts{white-space:nowrap}
+.rowacts .sm{padding:5px 9px;font-size:13px;margin-left:3px}
+.stockfoot{border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.tickline{margin:0;text-transform:none;font-size:14px;letter-spacing:0;
+  display:flex;align-items:center;gap:6px;height:44px;white-space:nowrap;cursor:pointer}
+.tickline input{width:auto}
+.seg.bigseg{display:flex;width:100%}
+.seg.bigseg button{flex:1;padding:12px 10px;font-size:15.5px;font-weight:600}
+.seg.bigseg button.on.k-add,.seg.bigseg button.on.k-in{background:var(--ok);color:#fff}
+.seg.bigseg button.on.k-remove,.seg.bigseg button.on.k-out{background:var(--bad);color:#fff}
+.seg.bigseg button.on.k-count{background:var(--brand);color:#fff}
+.seg.bigseg button.on.k-opening{background:var(--warn);color:#fff}
+/* Personal Accounts (30 Sep 2026): money given goes out, money received
+   comes in -- the colours of a payment and a receipt. */
+.seg.bigseg button.on.k-given{background:var(--bad);color:#fff}
+.seg.bigseg button.on.k-received{background:var(--ok);color:#fff}
+/* Its heading on paper: the top bar that names the page is not printed. */
+.pa-print{display:none;margin:0 0 10px;font-size:20px}
+.pa-print small{font-size:13px;font-weight:400;color:var(--muted)}
+@media print{.pa-print{display:block}}
+.opt{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);font-size:12px}
+.subfig{font-size:12px;color:var(--muted)}
+table.steeltbl thead th{white-space:normal;line-height:1.25;vertical-align:bottom}
+/* A material opened: the list narrowed to the left, its page on the right --
+   the item details of Vyapar, myBillBook and Zoho (27 Sep 2026). */
+.seg.stockchips button{padding:6px 12px;font-size:13.5px}
+.stocksplit{display:grid;grid-template-columns:340px minmax(0,1fr);gap:14px;align-items:start}
+.stocksplit>.card{margin:0}
+.splitlist .stmt-tools{padding:10px 12px}
+.splitscroll{max-height:calc(100vh - 290px);min-height:220px;overflow:auto}
+table.picklist td{padding:9px 12px;font-size:14.5px;border-bottom:1px solid var(--line-soft)}
+table.picklist tr.on td{background:var(--brand-soft)}
+table.picklist tr.on td:first-child{box-shadow:inset 3px 0 0 var(--brand)}
+.splitdetail{padding:0}
+.sdhead{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;
+  padding:14px 18px;border-bottom:1px solid var(--line-soft)}
+.sdname{font-size:18px;font-weight:700;line-height:1.3}
+.sdsub{font-size:13px;color:var(--muted);margin-top:2px}
+.sdfigs{display:flex;gap:10px;flex-wrap:wrap;padding:14px 18px 4px}
+.sdfig{border:1px solid var(--line);border-radius:var(--radius);padding:9px 14px;min-width:120px}
+.sdfig .lb{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:700}
+.sdfig .vl{font-size:17px;font-weight:700;font-family:var(--mono);margin-top:2px}
+.sdfig.main{border-color:var(--brand);background:var(--brand-soft)}
+.sdfig.main .vl{font-size:21px;color:var(--brand-dk)}
+.sdacts{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px}
+.sdsum{padding:8px 18px;font-size:13.5px;color:var(--muted);border-top:1px solid var(--line-soft)}
+table.sdmoves{font-size:14px}
+table.sdmoves td,table.sdmoves th{padding:8px 10px}
+table.sdmoves tr.bf td{background:#fbfcfe;color:var(--muted)}
+.card.startcard{border-left:4px solid var(--brand);background:var(--brand-soft)}
+.card.startcard .bd{display:flex;gap:16px;align-items:flex-start;font-size:15px;line-height:1.55}
+.stepno{flex:none;width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px}
+.stockgrid td.num{white-space:nowrap}
+table.stocktbl.byhand .rowacts .sm{padding:4px 6px;margin-left:2px}
+.subfig.neg{color:var(--bad)}
+/* Billing Stock's categories (4 Oct 2026): a bar of them, each with the
+   weight it holds, that is also the filter; a heading and subtotal over
+   each category's lines; the category box in a material's details. */
+.catbar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px;align-items:stretch}
+.catbar button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  padding:8px 13px;border:1px solid var(--line);border-radius:var(--radius);
+  background:var(--panel);text-align:left;min-width:120px}
+.catbar button .cn{font-size:12.5px;font-weight:700;letter-spacing:.03em;color:var(--muted)}
+.catbar button .ck{font-size:15px;font-weight:700;font-family:var(--mono);color:var(--ink)}
+.catbar button.on{border-color:var(--brand);background:var(--brand-soft);
+  box-shadow:inset 0 -3px 0 var(--brand)}
+.catbar button.on .cn{color:var(--brand-dk)}
+.catbar button.catedit{justify-content:center;align-items:center;min-width:0;
+  font-size:13.5px;font-weight:600;color:var(--brand);margin-left:auto}
+table.stocktbl tr.cathead td,table.picklist tr.cathead td{background:#f3f6fa;
+  border-top:1px solid var(--line);padding-top:9px;padding-bottom:9px}
+table.stocktbl tr.cathead td b,table.picklist tr.cathead td b{letter-spacing:.03em}
+table.picklist tr.cathead td{font-size:13px}
+.cathead .catn{margin-left:8px;font-size:12.5px;color:var(--muted);font-weight:400}
+.sdcat{display:flex;align-items:center;gap:8px;margin-top:8px}
+.sdcat label{margin:0;font-size:12px}
+.sdcat select{width:auto;min-width:calc(210px * var(--typescale));padding:5px 8px;font-size:14px}
+table.catedit{width:100%}
+table.catedit td{padding:5px 4px;border-bottom:1px solid var(--line-soft)}
+table.catedit td.catcount{font-size:13px;color:var(--muted);width:110px}
+table.catedit input{width:100%}
+/* Steel gone below nothing: named, not just counted. */
+.card.shortband{border-left:4px solid var(--bad);background:var(--bad-soft)}
+.card.shortband .bd{font-size:14.5px;line-height:1.55}
+/* The challan line's steel: a label like the bill's HSN, then the three. */
+.lineitems .subline.steelline > .hsnlab{margin-left:2px;margin-right:2px}
+/* The stock-in dialog's headings read as the dialog's other labels do. */
+.steelgrid th{font-size:13px;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--muted);font-weight:600}
+/* A steel box holding a name that is not on the list: red, and counted as
+   empty, until one is picked. */
+input.steelbox.wrong{border-color:var(--bad);background:var(--bad-soft);color:var(--bad)}
+/* The stock-in dialog's top line: every box one height, so the labels above
+   them stand level (a dropdown, a date and a text box are drawn at three
+   different heights otherwise). */
+.sehead input,.sehead select{height:48px;padding-top:0;padding-bottom:0}
+/* The steel's stock, right under the product box on a challan line (26 Sep
+   2026, the steel merged into the product): what is in hand and what the
+   line leaves, read at a glance -- red when it would run short, grey when
+   the line names no steel. */
+.stk.steelnote{font-family:inherit;font-size:13.5px;font-weight:650;
+  color:var(--brand-dk);margin:4px 0 3px 2px}
+.stk.steelnote.short{color:var(--bad)}
+.stk.steelnote.idle{font-weight:400;color:var(--muted)}
+/* The steel dropdown on a challan line (26 Sep 2026): its ▾ reads as a
+   dropdown's arrow -- larger, darker, set off by a line -- and the list is
+   one line a steel with its kilos in hand on the right. */
+.voucher .pickbox.steelpickbox > input{padding-right:44px}
+.voucher .pickbox.steelpickbox > .pickbtn{width:40px;font-size:19px;color:var(--ink);
+  border-left:1px solid var(--line-soft)}
+.pick-list.steelpick-list div{display:flex;align-items:baseline;gap:14px;padding:8px 12px}
+.pick-list.steelpick-list div .nm{flex:1;min-width:0;font-weight:600}
+.pick-list.steelpick-list div .kg{flex:none;font-size:14px;color:var(--muted);
+  font-family:var(--mono)}
+.pick-list.steelpick-list div .kg.have{color:var(--ok);font-weight:650}
+.pick-list.steelpick-list div .kg.short{color:var(--bad);font-weight:650}
+/* The steel as three dropdowns in the product column (26 Sep 2026): Type,
+   Quality and Thickness side by side across the name box's width, each with
+   its own ▾ inside its end. Each keeps room for its longest name -- PICKLE,
+   DEFECTIVE, 3.0 - 3.2 -- and where the column cannot hold all three,
+   Thickness goes onto a line of its own under the other two (10 Oct 2026:
+   squeezed to nothing under 1180px, typing went into them backwards). */
+.steeltrio{display:flex;flex-wrap:wrap;gap:6px}
+.steeltrio > .pickbox{flex:1 1 0;min-width:104px}
+.steeltrio > .pickbox:nth-child(2){flex-grow:1.25;min-width:130px}
+.steeltrio > .pickbox:nth-child(3){min-width:110px}
+/* Windows' larger type: "Thickness…" wants the room, a type ("CRCA") less.
+   The three still share one line at 1366 wide, as on the Mac. */
+html.win .steeltrio > .pickbox{min-width:100px}
+html.win .steeltrio > .pickbox:nth-child(2){min-width:140px}
+html.win .steeltrio > .pickbox:nth-child(3){min-width:136px}
+/* The typed boxes of the order screen and the challan (LineGrid `roomy`)
+   give up width on a smaller window before the name does; below the name's
+   least the grid scrolls sideways (LineGrid NAME_MIN). */
+.lineitems.roomy{--entry-w:138px;--entry-sm:var(--entry-w);--amount-w:138px}
+@media (max-width:1320px){.lineitems.roomy{--entry-w:100px;--amount-w:112px}}
+@media (max-width:1100px){.lineitems.roomy{--entry-w:88px;--entry-sm:76px;--amount-w:108px}}
+.voucher .steeltrio .pickbox.steelpickbox > input{padding-right:34px;font-weight:600}
+.voucher .steeltrio .pickbox.steelpickbox > .pickbtn{width:32px;font-size:17px}
+
+/* ------------------------------------------------------------ dates
+   3 Oct 2026: every date box is the app's own (app.js, "dates"): the date
+   reads dd-mm-yyyy whatever language the browser is in, with the calendar
+   inside its end the way a dropdown's arrow sits. The browser's own box
+   stays behind it, hidden, holding the date for the code. */
+.dt-real{display:none!important}
+.datebox{position:relative;display:block}
+/* In a row of filters a box is as wide as what it holds; the old box was
+   171px there. Elsewhere it fills its place, as the old one did. */
+.row>div>.datebox{min-width:10.5em}
+/* Windows' larger type is not in the em, which goes by the font size: at
+   1600 wide and over "dd-mm-yyyy" was cut by its last figure. */
+html.win .row>div>.datebox{min-width:calc(9em * var(--typescale))}
+.datebox>input.dtbox{padding-right:40px;font-variant-numeric:tabular-nums}
+.datebox>input.dtbox.wrong{border-color:var(--bad);background:var(--bad-soft);
+  box-shadow:0 0 0 1px var(--bad),0 0 0 5px rgba(180,35,24,.18)}
+.datebox>.dtbtn{position:absolute;top:1px;right:1px;bottom:1px;width:36px;padding:0;
+  border:0;border-radius:0 6px 6px 0;background:transparent;color:var(--muted);
+  justify-content:center;font-size:0}
+.datebox>.dtbtn:hover{color:var(--brand);background:var(--brand-soft)}
+.datebox>.dtbtn:disabled{display:none}
+.dtsay{position:fixed;z-index:410;background:var(--ink);color:#fff;font-size:13.5px;
+  font-weight:550;padding:4px 10px;border-radius:6px;pointer-events:none;
+  white-space:nowrap;box-shadow:0 4px 14px rgba(16,32,48,.18)}
+.dtsay.wrong{background:var(--bad)}
+
+.calpop{position:fixed;z-index:410;width:300px;padding:10px 11px 9px;background:#fff;
+  border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(16,32,48,.2);
+  animation:popIn .12s ease-out;user-select:none}
+.calpop button{font:inherit;border:0;background:none;padding:0;margin:0;color:var(--ink);
+  cursor:pointer;display:block;font-weight:500;border-radius:6px}
+.calpop .cal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.calpop .cal-hd b{font-size:16px}
+.calpop .cal-hd button{width:34px;height:32px;font-size:22px;line-height:30px;
+  text-align:center;color:var(--brand)}
+.calpop .cal-hd button:hover{background:var(--brand-soft)}
+.calpop .cal-wk,.calpop .cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.calpop .cal-wk span{text-align:center;font-size:12px;font-weight:650;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.03em;padding:2px 0 4px}
+.calpop .cal-days button{height:36px;text-align:center;font-size:15px;
+  font-variant-numeric:tabular-nums}
+.calpop .cal-days button:hover{background:var(--line-soft)}
+.calpop .cal-days button.out{color:#a7b2be}
+.calpop .cal-days button.now{box-shadow:inset 0 0 0 1.5px var(--brand)}
+.calpop .cal-days button.on{color:var(--brand);font-weight:750}
+.calpop .cal-days button.hi{background:var(--focus);color:#fff;font-weight:700}
+.calpop .cal-ft{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  margin-top:7px;padding-top:7px;border-top:1px solid var(--line-soft);font-size:14px;
+  color:var(--muted)}
+.calpop .cal-ft button{padding:4px 11px;color:var(--brand);font-weight:650}
+.calpop .cal-ft button:hover{background:var(--brand-soft)}
+@media print{.calpop,.dtsay,.datebox>.dtbtn{display:none!important}}
+
+/* A new entry from a customer's account (4 Oct 2026): the kinds as big
+   buttons, two a row, each saying where it goes. */
+.newfor{display:grid;grid-template-columns:1fr 1fr;gap:10px;min-width:460px}
+.newfor button{display:flex;flex-direction:column;align-items:flex-start;gap:4px;
+  padding:14px 16px;text-align:left;font-size:15.5px;line-height:1.25}
+.newfor button small{font-size:12.5px;color:var(--muted);font-weight:400}
+@media (max-width:600px){.newfor{grid-template-columns:1fr;min-width:0}}
+
+/* A bill's or challan's history (6 Oct 2026): every save that changed it,
+   newest first, what changed, and the whole document folded under it. */
+.hv{border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px}
+.hv-latest{border-color:var(--brand);box-shadow:inset 3px 0 0 var(--brand)}
+.hv-top{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.hv-top .tag{margin-left:auto}
+.hv-when{color:var(--muted);font-size:13.5px}
+.hv-why{color:var(--muted);font-size:13.5px;margin-top:6px}
+.hv-none{color:var(--muted);margin:0;line-height:1.5}
+.hv-list{margin:8px 0 0;padding-left:20px;line-height:1.55}
+.hv-list li{margin:3px 0}
+.hv-k{color:var(--muted);font-size:13px;margin-right:4px}
+.hv-name{font-weight:600}
+.hv-was{color:var(--bad);text-decoration:line-through;text-decoration-thickness:1px}
+.hv-add .hv-k{color:var(--ok);font-weight:650}
+.hv-del .hv-k{color:var(--bad);font-weight:650}
+.hv details{margin-top:8px}
+.hv summary{cursor:pointer;color:var(--brand);font-size:13.5px}
+.hv-head{display:flex;flex-wrap:wrap;gap:4px 18px;margin:8px 0;font-size:13.5px}
+.hv-tbl{width:100%;font-size:13.5px}
+.hv-tbl th,.hv-tbl td{padding:5px 8px}
+.hv-sub{color:var(--muted);font-size:12.5px}

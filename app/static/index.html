@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Billing &amp; Order Management</title>
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>🧾</text></svg>">
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand">
+      <b id="co-name">Billing</b><span id="co-sub">Order &amp; GST Billing</span>
+      <select id="co-switch" title="Switch company"></select>
+    </div>
+    <nav id="nav"></nav>
+    <div class="sidefoot" id="fy">&nbsp;</div>
+  </aside>
+  <main>
+    <header class="topbar">
+      <button class="sm noprint" id="menu-btn" style="display:none">☰</button>
+      <button class="sm noprint" id="back-btn" title="Back (Alt + ←)"
+              aria-label="Back">←</button>
+      <h1 id="page-title">Dashboard<div class="sub" id="page-sub"></div></h1>
+      <div id="page-actions" class="row" style="align-items:center"></div>
+      <button class="sm noprint" id="keys-btn" type="button"
+              title="Every key, and what it does here (F1)">⌨ <span class="kw">Keys</span> <span class="kbd">F1</span></button>
+    </header>
+    <div class="wrap" id="view"></div>
+  </main>
+</div>
+<div id="kbbar" class="noprint"></div>
+<div id="print-area"></div>
+<div id="toast"></div>
+<div id="modal-root"></div>
+<script src="/app.js"></script>
+</body>
+</html>
